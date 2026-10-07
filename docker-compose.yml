@@ -1,0 +1,51 @@
+services:
+  bank:
+    build:
+      context: .
+      dockerfile: src/LoanApp.BankCore.Simulator/Dockerfile
+    ports:
+      - "5090:8080"
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ApiKey: dev-bank-key
+
+  api:
+    build:
+      context: .
+      dockerfile: src/LoanApp.Api/Dockerfile
+    ports:
+      - "5088:8080"
+    depends_on:
+      - bank
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__LoanDb: Data Source=/app/data/loanapp.db
+      Database__Provider: Sqlite
+      PublicApiBaseUrl: http://localhost:5088
+      Storage__Mode: Local
+      Storage__LocalRoot: /app/blobs
+      ServiceBus__Mode: InMemory
+      BankCore__BaseUrl: http://bank:8080/
+      BankCore__ApiKey: dev-bank-key
+      Auth__UseDevelopmentAuth: "true"
+      Cors__Origins__0: http://localhost:5173
+      FeatureFlags__AiAssistant: "false"
+      FeatureFlags__AiVerificationAssist: "false"
+    volumes:
+      - loan-db:/app/data
+      - loan-blobs:/app/blobs
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      args:
+        VITE_API_BASE_URL: http://localhost:5088
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+volumes:
+  loan-db:
+  loan-blobs:

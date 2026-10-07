@@ -1,0 +1,15 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/.vs/
+**/.git/
+**/.azure/
+**/blobs/
+**/*.db
+**/*.user
+**/local.settings.json
+apps/web/.env
+apps/web/.env.local
+*.md
+!README.md

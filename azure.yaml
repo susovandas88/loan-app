@@ -1,0 +1,19 @@
+name: loan-app
+metadata:
+  template: aspnet-react-azure
+services:
+  api:
+    project: src/LoanApp.Api
+    host: appservice
+    language: dotnet
+  processor:
+    project: src/LoanApp.Functions
+    host: function
+    language: dotnet
+  web:
+    project: apps/web
+    host: staticwebapp
+    language: js
+infra:
+  provider: bicep
+  path: infra
