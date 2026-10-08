@@ -39,7 +39,7 @@ flowchart LR
   Di[Document_Intelligence_stub]
   Bank[BankCore_Simulator]
 
-  Browser -->|"REST_JWT_or_dev_auth"| Api
+  Browser -->|"REST_with_JWT"| Api
   Browser -->|"PUT_short_lived_upload_URL"| Blob
   Api --> Db
   Api --> Blob
@@ -80,7 +80,7 @@ flowchart LR
 | Documents | Folder `blobs/` | Volume `loan-blobs` | **Azure Blob** (private) |
 | Messaging | In-memory channel | In-memory in API container | **Azure Service Bus** queue |
 | Processor | `InProcessApplicationWorker` in the API | Same, inside `api` | **Azure Functions** on the queue |
-| Identity | Development auth (`X-User-Id`, default `dev-user`) | Same | Entra External ID (B2C) JWT |
+| Identity | Local HMAC JWT (`POST /api/v1/auth/login`) | Same | `Auth:Mode=External` JWT (Entra authority) |
 | OCR / scan | Filename stubs | Same | Stub until Document Intelligence is wired |
 
 **Compose does not run a database server.** SQLite is a file inside the API container, persisted on a named volume. Production is Azure SQL via `Database__Provider=SqlServer`.
@@ -102,7 +102,9 @@ sequenceDiagram
   participant Pipe as Processing_pipeline
   participant Bank as Bank_core
 
-  Customer->>React: Sign_in_dev_or_B2C
+  Customer->>React: Sign_in_email_password
+  React->>Api: POST_auth_login
+  Api-->>React: JWT_access_token
   React->>Api: POST_api_v1_applications
   Api->>Store: Draft
   React->>Api: POST_documents_upload_url
@@ -138,12 +140,13 @@ Applicants may change profile/documents only in **Draft** or **ActionRequired**.
 Base URL locally: `http://localhost:5088`  
 OpenAPI: `http://localhost:5088/openapi/v1.json`
 
-Auth: `[Authorize]` on product and application routes. Development handler succeeds for every request; optional header `X-User-Id`. Production: JWT bearer (`Auth:Authority`, `Auth:Audience`).
+Auth: `[Authorize]` on product and application routes. `POST /api/v1/auth/login` checks the demo applicant password (PBKDF2) and returns an HMAC-SHA256 JWT (`Auth:Issuer`, `Auth:Audience`, `Auth:SigningKey`). Callers send `Authorization: Bearer`. `Auth:Mode=External` validates tokens from `Auth:Authority` instead of issuing them locally. `Auth:UseDevelopmentAuth=true` is an explicit opt-in that skips JWT.
 
 Errors: JSON `{ "code", "message", "details" }`.
 
 | Method | Path | Purpose |
 |---|---|---|
+| POST | `/api/v1/auth/login` | Exchange email and password for a JWT |
 | GET | `/api/v1/loan-products` | Products and required document types |
 | POST | `/api/v1/applications` | Create draft |
 | GET | `/api/v1/applications` | List current user (`page`, `pageSize`) |

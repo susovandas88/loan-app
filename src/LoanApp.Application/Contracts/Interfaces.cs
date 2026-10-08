@@ -10,6 +10,14 @@ public interface IClock
 public interface ICurrentUser
 {
     string UserId { get; }
+    UserRole Role { get; }
+}
+
+public interface IUserRepository
+{
+    Task<AppUser?> FindByEmailAsync(string email, CancellationToken ct);
+    Task<AppUser?> FindByIdAsync(string id, CancellationToken ct);
+    Task<IReadOnlyList<AppUser>> ListApplicantsAsync(CancellationToken ct);
 }
 
 public interface IFeatureFlags
@@ -24,6 +32,8 @@ public interface IApplicationRepository
     Task<LoanApplication?> GetByIdForUserAsync(Guid id, string userId, CancellationToken ct);
     Task<IReadOnlyList<LoanApplication>> ListForUserAsync(string userId, int page, int pageSize, CancellationToken ct);
     Task<int> CountForUserAsync(string userId, CancellationToken ct);
+    Task<IReadOnlyList<LoanApplication>> ListAllAsync(int page, int pageSize, CancellationToken ct);
+    Task<int> CountAllAsync(CancellationToken ct);
     Task AddAsync(LoanApplication application, CancellationToken ct);
     Task AddDocumentAsync(LoanDocument document, CancellationToken ct);
     Task SaveChangesAsync(CancellationToken ct);

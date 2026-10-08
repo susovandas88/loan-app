@@ -14,7 +14,15 @@ Use three terminals from the repo root.
 
 OpenAPI: http://localhost:5088/openapi/v1.json
 
-Development auth accepts any request and uses `X-User-Id` (default `dev-user`). Local files go to `blobs/` via a short-lived upload URL. An in-process worker handles verification so Azure Functions are not required locally.
+Sign in at the portal. The API returns a JWT with a role and rejects application calls that do not send `Authorization: Bearer`.
+
+| Role | Email | Password | Access |
+|---|---|---|---|
+| Applicant | `applicant@loan.local` | `LoanPortal!2026` | Own applications only |
+| Reviewer | `reviewer@loan.local` | `Reviewer!2026` | All applications and documents, no personal details, no edits |
+| Super admin | `admin@loan.local` | `Admin!2026` | Create and change any application on behalf of an applicant |
+
+Local files go to `blobs/` via a short-lived upload URL. An in-process worker handles verification so Azure Functions are not required locally.
 
 Filename hints for testing rules: `unreadable`, `blur`, `expired`, `virus`, `eicar`, `.exe`.
 

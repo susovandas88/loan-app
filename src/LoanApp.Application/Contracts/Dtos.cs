@@ -11,7 +11,10 @@ public sealed record CreateApplicationRequest(
     string FullName,
     DateOnly DateOfBirth,
     string Email,
-    decimal MonthlyIncome);
+    decimal MonthlyIncome,
+    string? ApplicantUserId = null);
+
+public sealed record ApplicantUserDto(string Id, string Email, string DisplayName);
 
 public sealed record UpdateApplicationRequest(
     decimal Amount,
@@ -41,10 +44,10 @@ public sealed record ApplicationDto(
     LoanProductCode ProductCode,
     decimal Amount,
     int TenureMonths,
-    string FullName,
-    DateOnly DateOfBirth,
-    string Email,
-    decimal MonthlyIncome,
+    string? FullName,
+    DateOnly? DateOfBirth,
+    string? Email,
+    decimal? MonthlyIncome,
     ApplicationStatus Status,
     string? StatusReasonCode,
     string? BankReference,

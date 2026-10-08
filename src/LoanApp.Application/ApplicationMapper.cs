@@ -5,7 +5,7 @@ namespace LoanApp.Application;
 
 public static class ApplicationMapper
 {
-    public static ApplicationDto ToDto(LoanApplication app, ILoanCatalog catalog)
+    public static ApplicationDto ToDto(LoanApplication app, ILoanCatalog catalog, bool includePersonal = true)
     {
         var required = catalog.GetRequired(app.ProductCode).RequiredDocuments;
         var checklist = required.Select(type =>
@@ -21,10 +21,10 @@ public static class ApplicationMapper
             app.ProductCode,
             app.Amount,
             app.TenureMonths,
-            app.FullName,
-            app.DateOfBirth,
-            app.Email,
-            app.MonthlyIncome,
+            includePersonal ? app.FullName : null,
+            includePersonal ? app.DateOfBirth : null,
+            includePersonal ? app.Email : null,
+            includePersonal ? app.MonthlyIncome : null,
             app.Status,
             app.StatusReasonCode,
             app.BankReference,

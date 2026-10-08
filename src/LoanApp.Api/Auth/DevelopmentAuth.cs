@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using LoanApp.Application.Contracts;
+using LoanApp.Application.Domain;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 
@@ -34,7 +35,9 @@ public sealed class DevelopmentAuthHandler : AuthenticationHandler<DevelopmentAu
         [
             new Claim(ClaimTypes.NameIdentifier, userId),
             new Claim("sub", userId),
-            new Claim(ClaimTypes.Name, userId)
+            new Claim(ClaimTypes.Name, userId),
+            new Claim("role", "Applicant"),
+            new Claim(ClaimTypes.Role, "Applicant")
         ], SchemeName);
 
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), SchemeName);
@@ -60,6 +63,16 @@ public sealed class HttpCurrentUser : ICurrentUser
                 ?? user?.FindFirstValue("oid")
                 ?? user?.FindFirstValue("sub")
                 ?? throw new InvalidOperationException("Authenticated user id is missing.");
+        }
+    }
+
+    public UserRole Role
+    {
+        get
+        {
+            var value = _accessor.HttpContext?.User.FindFirstValue("role")
+                ?? _accessor.HttpContext?.User.FindFirstValue(ClaimTypes.Role);
+            return Enum.TryParse<UserRole>(value, out var role) ? role : UserRole.Applicant;
         }
     }
 }

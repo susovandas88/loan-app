@@ -1,17 +1,24 @@
 import { FormEvent, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api";
-import type { ApiError, LoanProduct } from "../types";
+import { useAuth } from "../auth";
+import type { ApiError, ApplicantUser, LoanProduct } from "../types";
 
 export default function NewApplication() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [products, setProducts] = useState<LoanProduct[]>([]);
+  const [applicants, setApplicants] = useState<ApplicantUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const admin = user?.role === "SuperAdmin";
 
   useEffect(() => {
     api.products().then(setProducts).catch((err: ApiError) => setError(err.message));
-  }, []);
+    if (admin) {
+      api.listApplicants().then(setApplicants).catch((err: ApiError) => setError(err.message));
+    }
+  }, [admin]);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -26,7 +33,8 @@ export default function NewApplication() {
         fullName: form.get("fullName"),
         dateOfBirth: form.get("dateOfBirth"),
         email: form.get("email"),
-        monthlyIncome: Number(form.get("monthlyIncome"))
+        monthlyIncome: Number(form.get("monthlyIncome")),
+        applicantUserId: admin ? form.get("applicantUserId") : undefined
       });
       navigate(`/applications/${created.id}`);
     } catch (err) {
@@ -38,7 +46,7 @@ export default function NewApplication() {
 
   return (
     <section className="card">
-      <h1>Apply for a loan</h1>
+      <h1>{admin ? "Apply on behalf of an applicant" : "Apply for a loan"}</h1>
       {error && <p className="error">{error}</p>}
       <form onSubmit={onSubmit}>
         <div className="grid">
@@ -60,6 +68,19 @@ export default function NewApplication() {
             <label htmlFor="tenureMonths">Tenure (months)</label>
             <input id="tenureMonths" name="tenureMonths" type="number" min={6} max={360} defaultValue={36} required />
           </div>
+          {admin && (
+            <div>
+              <label htmlFor="applicantUserId">Applicant</label>
+              <select id="applicantUserId" name="applicantUserId" required>
+                <option value="">Select applicant</option>
+                {applicants.map((person) => (
+                  <option key={person.id} value={person.id}>
+                    {person.displayName} ({person.email})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           <div>
             <label htmlFor="fullName">Full name</label>
             <input id="fullName" name="fullName" required />

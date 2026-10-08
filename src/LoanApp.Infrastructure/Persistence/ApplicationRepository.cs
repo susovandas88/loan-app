@@ -51,6 +51,23 @@ public sealed class ApplicationRepository : IApplicationRepository
     public Task<int> CountForUserAsync(string userId, CancellationToken ct) =>
         _db.Applications.CountAsync(a => a.ApplicantUserId == userId, ct);
 
+    public async Task<IReadOnlyList<LoanApplication>> ListAllAsync(int page, int pageSize, CancellationToken ct)
+    {
+        var items = await Query().AsNoTracking().ToListAsync(ct);
+        foreach (var app in items)
+        {
+            DropGhosts(app);
+        }
+
+        return items
+            .OrderByDescending(a => a.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+    }
+
+    public Task<int> CountAllAsync(CancellationToken ct) => _db.Applications.CountAsync(ct);
+
     public async Task AddAsync(LoanApplication application, CancellationToken ct) =>
         await _db.Applications.AddAsync(application, ct);
 

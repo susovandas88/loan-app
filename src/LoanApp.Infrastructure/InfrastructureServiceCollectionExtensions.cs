@@ -34,6 +34,7 @@ public static class InfrastructureServiceCollectionExtensions
         });
 
         services.AddScoped<IApplicationRepository, ApplicationRepository>();
+        services.AddScoped<IUserRepository, UserRepository>();
         services.AddSingleton<IClock, SystemClock>();
         services.AddSingleton<IFeatureFlags>(new FeatureFlags
         {

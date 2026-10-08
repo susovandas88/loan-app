@@ -13,6 +13,7 @@ public sealed class LoanDbContext : DbContext
     public DbSet<LoanApplication> Applications => Set<LoanApplication>();
     public DbSet<LoanDocument> Documents => Set<LoanDocument>();
     public DbSet<VerificationFinding> Findings => Set<VerificationFinding>();
+    public DbSet<AppUser> Users => Set<AppUser>();
 
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
@@ -49,6 +50,18 @@ public sealed class LoanDbContext : DbContext
             b.Property(x => x.ContentType).HasMaxLength(128);
             b.Property(x => x.ExtractedJson);
             b.ToTable(t => t.UseSqlReturningClause(false));
+        });
+
+        modelBuilder.Entity<AppUser>(b =>
+        {
+            b.HasKey(x => x.Id);
+            b.Property(x => x.Id).HasMaxLength(64);
+            b.Property(x => x.Email).HasMaxLength(256).IsRequired();
+            b.Property(x => x.DisplayName).HasMaxLength(200).IsRequired();
+            b.Property(x => x.PasswordSalt).HasMaxLength(128).IsRequired();
+            b.Property(x => x.PasswordHash).HasMaxLength(128).IsRequired();
+            b.HasIndex(x => x.Email).IsUnique();
+            b.ToTable("Users");
         });
 
         modelBuilder.Entity<VerificationFinding>(b =>

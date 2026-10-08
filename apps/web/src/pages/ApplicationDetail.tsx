@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { api, uploadFile } from "../api";
+import { useAuth } from "../auth";
 import type { ApiError, Application, DocumentType } from "../types";
 
 const busy: Application["status"][] = ["Submitted", "Verifying"];
@@ -13,6 +14,7 @@ function badgeClass(status: Application["status"]): string {
 }
 
 export default function ApplicationDetail() {
+  const { user } = useAuth();
   const { id } = useParams<{ id: string }>();
   const [app, setApp] = useState<Application | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -73,7 +75,7 @@ export default function ApplicationDetail() {
     return <section className="card">{error ? <p className="error">{error}</p> : <p>Loading…</p>}</section>;
   }
 
-  const canEdit = app.status === "Draft" || app.status === "ActionRequired";
+  const canEdit = user?.role !== "Reviewer" && (app.status === "Draft" || app.status === "ActionRequired");
 
   return (
     <section className="card">
@@ -82,7 +84,8 @@ export default function ApplicationDetail() {
         <span className={badgeClass(app.status)}>{app.status}</span>
       </div>
       <p className="muted">
-        {app.fullName} · {app.amount.toLocaleString()} · {app.tenureMonths} months · engine {app.decisionEngine}
+        {app.fullName ? `${app.fullName} · ` : ""}
+        {app.amount.toLocaleString()} · {app.tenureMonths} months · engine {app.decisionEngine}
       </p>
       {app.statusReasonCode && <p className="error">Action: {app.statusReasonCode}</p>}
       {app.bankReference && <p>Bank reference: {app.bankReference}</p>}

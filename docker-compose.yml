@@ -27,7 +27,9 @@ services:
       ServiceBus__Mode: InMemory
       BankCore__BaseUrl: http://bank:8080/
       BankCore__ApiKey: dev-bank-key
-      Auth__UseDevelopmentAuth: "true"
+      Auth__UseDevelopmentAuth: "false"
+      Auth__Mode: Local
+      Auth__SigningKey: dev-only-loan-app-signing-key-32!
       Cors__Origins__0: http://localhost:5173
       FeatureFlags__AiAssistant: "false"
       FeatureFlags__AiVerificationAssist: "false"

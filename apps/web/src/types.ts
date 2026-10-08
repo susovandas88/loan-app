@@ -15,6 +15,14 @@ export type DocumentLifecycle =
   | "Extracted"
   | "Failed";
 
+export type UserRole = "Applicant" | "Reviewer" | "SuperAdmin";
+
+export interface ApplicantUser {
+  id: string;
+  email: string;
+  displayName: string;
+}
+
 export interface LoanProduct {
   code: LoanProductCode;
   name: string;
@@ -46,10 +54,10 @@ export interface Application {
   productCode: LoanProductCode;
   amount: number;
   tenureMonths: number;
-  fullName: string;
-  dateOfBirth: string;
-  email: string;
-  monthlyIncome: number;
+  fullName: string | null;
+  dateOfBirth: string | null;
+  email: string | null;
+  monthlyIncome: number | null;
   status: ApplicationStatus;
   statusReasonCode: string | null;
   bankReference: string | null;

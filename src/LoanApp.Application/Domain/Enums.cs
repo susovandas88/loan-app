@@ -34,3 +34,10 @@ public enum LoanProductCode
     Home = 1,
     Auto = 2
 }
+
+public enum UserRole
+{
+    Applicant = 1,
+    Reviewer = 2,
+    SuperAdmin = 3
+}

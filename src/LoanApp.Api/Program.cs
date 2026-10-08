@@ -1,3 +1,4 @@
+using System.Text;
 using System.Text.Json.Serialization;
 using LoanApp.Api.Auth;
 using LoanApp.Api.Middleware;
@@ -6,6 +7,7 @@ using LoanApp.Infrastructure;
 using LoanApp.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -26,8 +28,27 @@ builder.Services.AddSwaggerGen(options =>
             "Customer loan apply-and-upload API. " +
             "Use Applications to create drafts, request upload URLs, complete uploads, submit, and poll status. " +
             "Loan products lists required document types. " +
-            "Development uploads receives the actual file bytes for local/Docker storage (PUT to the URL returned by upload-url). " +
-            "With development auth, requests succeed without a JWT; optional header X-User-Id selects the applicant."
+            "Sign in with POST /api/v1/auth/login and send Authorization: Bearer {accessToken}. " +
+            "Development uploads receives the actual file bytes for local/Docker storage (PUT to the URL returned by upload-url)."
+    });
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "JWT returned by POST /api/v1/auth/login."
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            },
+            Array.Empty<string>()
+        }
     });
 });
 builder.Services.AddHttpContextAccessor();
@@ -43,23 +64,67 @@ builder.Services.AddCors(options =>
             .AllowAnyMethod());
 });
 
-var useDevAuth = builder.Configuration.GetValue("Auth:UseDevelopmentAuth", builder.Environment.IsDevelopment());
+var useDevAuth = builder.Configuration.GetValue("Auth:UseDevelopmentAuth", false);
+var authMode = builder.Configuration["Auth:Mode"] ?? "Local";
 if (useDevAuth)
 {
     builder.Services.AddAuthentication(DevelopmentAuthHandler.SchemeName)
         .AddScheme<DevelopmentAuthOptions, DevelopmentAuthHandler>(DevelopmentAuthHandler.SchemeName, _ => { });
 }
-else
+else if (string.Equals(authMode, "External", StringComparison.OrdinalIgnoreCase))
 {
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
             options.Authority = builder.Configuration["Auth:Authority"];
             options.Audience = builder.Configuration["Auth:Audience"];
+            options.MapInboundClaims = false;
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
-                NameClaimType = "oid"
+                ValidateAudience = true,
+                NameClaimType = "sub",
+                RoleClaimType = "role"
+            };
+        });
+}
+else
+{
+    var issuer = builder.Configuration["Auth:Issuer"] ?? "loan-app";
+    var audience = builder.Configuration["Auth:Audience"] ?? "loan-app-api";
+    var signingKey = builder.Configuration["Auth:SigningKey"] ?? "";
+    const string wellKnownDevKey = "dev-only-loan-app-signing-key-32!";
+    if (Encoding.UTF8.GetByteCount(signingKey) < 32)
+    {
+        throw new InvalidOperationException("Auth:SigningKey must be at least 32 bytes.");
+    }
+
+    if (!builder.Environment.IsDevelopment() && signingKey == wellKnownDevKey)
+    {
+        throw new InvalidOperationException("Replace Auth:SigningKey outside Development.");
+    }
+
+    builder.Services.AddSingleton(new JwtIssuer(
+        issuer,
+        audience,
+        signingKey,
+        builder.Configuration.GetValue("Auth:TokenMinutes", 60)));
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.MapInboundClaims = false;
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateIssuerSigningKey = true,
+                ValidateLifetime = true,
+                ValidIssuer = issuer,
+                ValidAudience = audience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
+                ClockSkew = TimeSpan.FromMinutes(1),
+                NameClaimType = "sub",
+                RoleClaimType = "role"
             };
         });
 }
@@ -72,6 +137,7 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<LoanDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await UserSeeder.SeedAsync(db);
 }
 
 app.UseMiddleware<ExceptionMappingMiddleware>();
